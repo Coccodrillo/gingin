@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -49,6 +50,16 @@ func main() {
 			Name:  "path,t",
 			Value: ".",
 			Usage: "Path to watch files from",
+		},
+		cli.StringFlag{
+			Name:  "exclude,e",
+			Value: "",
+			Usage: "Comma separated paths to ignore files in",
+		},
+		cli.StringFlag{
+			Name:  "runArgs,u",
+			Value: "",
+			Usage: "Comma separated args to give to run",
 		},
 		cli.BoolFlag{
 			Name:  "immediate,i",
@@ -94,9 +105,16 @@ func MainAction(c *cli.Context) {
 	}
 
 	builder := gin.NewBuilder(c.GlobalString("path"), c.GlobalString("bin"), c.GlobalBool("godep"))
-	runner := gin.NewRunner(filepath.Join(wd, builder.Binary()), c.Args()...)
+
+	// fmt.Println(c.Args())
+	runArgs := strings.Split(c.GlobalString("runArgs"), ",")
+	fmt.Println(c.GlobalString("runArgs"))
+
+	// runArgs = append([]string{}, "-env", "development")
+	runner := gin.NewRunner(filepath.Join(wd, builder.Binary()), runArgs...)
 	runner.SetWriter(os.Stdout)
 	proxy := gin.NewProxy(builder, runner)
+	excludeList := strings.Split(c.GlobalString("exclude"), ",")
 
 	config := &gin.Config{
 		Port:    port,
@@ -116,7 +134,8 @@ func MainAction(c *cli.Context) {
 	build(builder, runner, logger)
 
 	// scan for changes
-	scanChanges(c.GlobalString("path"), func(path string) {
+
+	scanChanges(c.GlobalString("path"), excludeList, func(path string) {
 		runner.Kill()
 		build(builder, runner, logger)
 	})
@@ -142,9 +161,11 @@ func build(builder gin.Builder, runner gin.Runner, logger *log.Logger) {
 		logger.Println("ERROR! Build failed.")
 		fmt.Println(builder.Errors())
 	} else {
-		// print success only if there were errors before
+		// print success only if there were errors before, otherwise tell when rebuilt
 		if buildError != nil {
 			logger.Println("Build Successful")
+		} else {
+			logger.Printf("Rebuilt at %v \n", time.Now())
 		}
 		buildError = nil
 		if immediate {
@@ -157,9 +178,15 @@ func build(builder gin.Builder, runner gin.Runner, logger *log.Logger) {
 
 type scanCallback func(path string)
 
-func scanChanges(watchPath string, cb scanCallback) {
+func scanChanges(watchPath string, excludeList []string, cb scanCallback) {
 	for {
 		filepath.Walk(watchPath, func(path string, info os.FileInfo, err error) error {
+			for _, ex := range excludeList {
+				if path == ex {
+					return filepath.SkipDir
+				}
+			}
+
 			if path == ".git" {
 				return filepath.SkipDir
 			}

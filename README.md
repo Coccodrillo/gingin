@@ -1,38 +1,25 @@
-gin [![wercker status](https://app.wercker.com/status/f413ccbd85cfc4a58a37f03dd7aaa87e "wercker status")](https://app.wercker.com/project/bykey/f413ccbd85cfc4a58a37f03dd7aaa87e)
-========
-
-`gin` is a simple command line utility for live-reloading Go web applications. 
-Just run `gin` in your app directory and your web app will be served with 
-`gin` as a proxy. `gin` will automatically recompile your code when it 
-detects a change. Your app will be restarted the next time it receives an 
-HTTP request.
-
-`gin` adheres to the "silence is golden" principle, so it will only complain 
-if there was a compiler error or if you succesfully compile after an error.
+`gingin` is a [fork](https://github.com/codegangsta/gin) of command line reloader for live reloading of Go web applications. I have changed the name from gin to differentiate from the excellent [Gin framework](https://github.com/gin-gonic/gin). Kudos to Codegangsta for the original, but I wanted some features and no one seemed to be ready to apply them.
 
 ## Installation
 
-Assuming you have a working Go environment and `GOPATH/bin` is in your 
-`PATH`, `gin` is a breeze to install:
+Assuming you have a working Go environment and `GOPATH/bin` is in your
+`PATH`, `gingin` is a breeze to install:
 
 ```shell
-go get github.com/codegangsta/gin
+go get github.com/coccodrillo/gingin
 ```
 
-Then verify that `gin` was installed correctly:
+Then verify that `gingin` was installed correctly:
 
 ```shell
-gin -h
+gingin -h
 ```
 
-## Supporting Gin in Your Web app
-`gin` assumes that your web app binds itself to the `PORT` environment 
-variable so it can properly proxy requests to your app. Web frameworks 
-like [Martini](http://github.com/codegangsta/martini) do this out of 
-the box.
+## Additional changes
 
-## Using flags?
-When you normally start your server with [flags](https://godoc.org/flag)
-if you want to override any of them when running `gin` we suggest you 
-instead use [github.com/namsral/flag](https://github.com/namsral/flag)
-as explained in [this post](http://stackoverflow.com/questions/24873883/organizing-environment-variables-golang/28160665#28160665)
+I disliked the handling of the flags in original `gin` so I added arg runArgs,u which passes comma separated list of flags to the run command. This enables you to switch between production and development environments on the fly instead of changing your code or env variables:
+ ```gingin -u="-env=development"``` thus passes "-env=development" to run command
+
+I also added a command to exclude some folders since it helps with compilation times for larger projects - exclude,e takes in a comma separated list of folders to ignore when watching file changes
+
+The original `gin` readme also said it adheres to the "silence is golden" principle, so it will only complain if there was a compiler error or if you successfully compile after an error. When having longer compile times and not getting an error it was difficult to figure out whether the change was already built. In this case, silence did not appear to be golden, so I added a message for every time when it reloads.
