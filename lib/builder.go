@@ -46,9 +46,9 @@ func (b *builder) Errors() string {
 func (b *builder) Build() error {
 	var command *exec.Cmd
 	if b.useGodep {
-		command = exec.Command("godep", "go", "build", "-o", b.binary)
+		command = exec.Command("godep", "go", "build", "-i", "-o", b.binary)
 	} else {
-		command = exec.Command("go", "build", "-o", b.binary)
+		command = exec.Command("go", "build", "-i", "-o", b.binary)
 	}
 	command.Dir = b.dir
 
