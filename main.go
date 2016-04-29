@@ -7,6 +7,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/codegangsta/envy/lib"
 	"github.com/codegangsta/gin/lib"
+	"github.com/everdev/mack"
 
 	"log"
 	"os"
@@ -19,10 +20,11 @@ import (
 )
 
 var (
-	startTime  = time.Now()
-	logger     = log.New(os.Stdout, "[gin] ", 0)
-	immediate  = false
-	buildError error
+	startTime            = time.Now()
+	logger               = log.New(os.Stdout, "[gingin] ", 0)
+	immediate            = false
+	notificationsEnabled = true
+	buildError           error
 )
 
 func main() {
@@ -68,6 +70,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "godep,g",
 			Usage: "use godep when building",
+		},
+		cli.BoolFlag{
+			Name:  "notify,n",
+			Usage: "use OS X notifications when rebuilding",
 		},
 	}
 	app.Commands = []cli.Command{
@@ -162,10 +168,23 @@ func build(builder gin.Builder, runner gin.Runner, logger *log.Logger) {
 		fmt.Println(builder.Errors())
 	} else {
 		// print success only if there were errors before, otherwise tell when rebuilt
+		var notificationMessage string
 		if buildError != nil {
-			logger.Println("Build Successful")
+			notificationMessage = "Build Successful"
+			logger.Println(notificationMessage)
 		} else {
-			logger.Printf("Rebuilt at %v \n", time.Now())
+			var curDir1 string
+			curDir, _ := os.Getwd()
+			segments := strings.Split(curDir, "/")
+			if len(segments) > 0 {
+				curDir1 = segments[len(segments)-1]
+			}
+			notificationMessage = fmt.Sprintf("%v - Rebuilt at %v \n", curDir1, time.Now().Format("15:04:05.999999"))
+			logger.Printf(notificationMessage)
+		}
+		fmt.Println(notificationsEnabled)
+		if notificationMessage != "" && notificationsEnabled {
+			mack.Notify(notificationMessage)
 		}
 		buildError = nil
 		if immediate {
