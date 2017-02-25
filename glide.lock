@@ -1,0 +1,16 @@
+hash: 142b986927b2a4806e0c82ee33a5ce2e161167cac58bfc218fdf968f307a9e0c
+updated: 2017-02-25T01:55:45.919935531-08:00
+imports:
+- name: github.com/codegangsta/cli
+  version: 0bdeddeeb0f650497d603c4ad7b20cfe685682f6
+- name: github.com/codegangsta/envy
+  version: 4b78388c8ce4fa412440ca4eaa654e2fdd752e49
+  subpackages:
+  - lib
+- name: github.com/codegangsta/gin
+  version: 20c9707f2046c2a1019cea9659931731cf15a7dd
+  subpackages:
+  - lib
+- name: github.com/everdev/mack
+  version: f42b12b51a50c710433b2763b41b0bf10a3dca46
+testImports: []
