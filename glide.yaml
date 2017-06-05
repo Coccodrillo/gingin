@@ -1,0 +1,11 @@
+package: github.com/Coccodrillo/gingin
+import:
+- package: github.com/codegangsta/cli
+  version: ^1.19.1
+- package: github.com/codegangsta/envy
+  subpackages:
+  - lib
+- package: github.com/codegangsta/gin
+  subpackages:
+  - lib
+- package: github.com/everdev/mack
