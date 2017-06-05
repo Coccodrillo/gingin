@@ -53,6 +53,11 @@ func main() {
 			Value: ".",
 			Usage: "Path to watch files from",
 		},
+		cli.IntFlag{
+			Name:  "scanLower,sl",
+			Value: 0,
+			Usage: "Scan parent folders (useful for monorepos)",
+		},
 		cli.StringFlag{
 			Name:  "exclude,e",
 			Value: "",
@@ -141,7 +146,7 @@ func MainAction(c *cli.Context) {
 
 	// scan for changes
 
-	scanChanges(c.GlobalString("path"), excludeList, func(path string) {
+	scanChanges(c.GlobalString("path"), c.GlobalInt("scanLower"), excludeList, func(path string) {
 		runner.Kill()
 		build(builder, runner, logger)
 	})
@@ -161,11 +166,10 @@ func EnvAction(c *cli.Context) {
 }
 
 func build(builder gin.Builder, runner gin.Runner, logger *log.Logger) {
-	err := builder.Build()
-	if err != nil {
+	if err := builder.Build(); err != nil {
 		buildError = err
 		logger.Println("ERROR! Build failed.")
-		fmt.Println(builder.Errors())
+		logger.Println(builder.Errors())
 	} else {
 		// print success only if there were errors before, otherwise tell when rebuilt
 		var notificationMessage string
@@ -182,7 +186,6 @@ func build(builder gin.Builder, runner gin.Runner, logger *log.Logger) {
 			notificationMessage = fmt.Sprintf("%v - Rebuilt at %v \n", curDir1, time.Now().Format("15:04:05.999999"))
 			logger.Printf(notificationMessage)
 		}
-		fmt.Println(notificationsEnabled)
 		if notificationMessage != "" && notificationsEnabled {
 			mack.Notify(notificationMessage)
 		}
@@ -191,13 +194,22 @@ func build(builder gin.Builder, runner gin.Runner, logger *log.Logger) {
 			runner.Run()
 		}
 	}
-
 	time.Sleep(100 * time.Millisecond)
 }
 
 type scanCallback func(path string)
 
-func scanChanges(watchPath string, excludeList []string, cb scanCallback) {
+func scanChanges(watchPath string, scanLower int, excludeList []string, cb scanCallback) {
+	if scanLower > 0 {
+		wtch, err := filepath.Abs(watchPath)
+		if err == nil {
+			watchPath = wtch
+		}
+		split := strings.Split(strings.TrimRight(watchPath, "/"), "/")
+		if scanLower < len(split) {
+			watchPath = strings.Join(split[0:len(split)-scanLower], "/")
+		}
+	}
 	for {
 		filepath.Walk(watchPath, func(path string, info os.FileInfo, err error) error {
 			for _, ex := range excludeList {
@@ -216,6 +228,11 @@ func scanChanges(watchPath string, excludeList []string, cb scanCallback) {
 			}
 
 			if filepath.Ext(path) == ".go" && info.ModTime().After(startTime) {
+				rebuildingString := "Detected changes, rebuilding..."
+				logger.Println(rebuildingString)
+				if notificationsEnabled {
+					mack.Notify(rebuildingString)
+				}
 				cb(path)
 				startTime = time.Now()
 				return errors.New("done")
